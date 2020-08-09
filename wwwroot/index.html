@@ -1,0 +1,531 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        #map {
+            position: relative;
+            width: 900px;
+            height: 500px;
+            left: 1px;
+            top: 1px;
+        }
+
+        button {
+        }
+
+        .btn-red {
+        }
+    </style>
+    <style>
+
+        body {
+            background-color: #FFEFD5;
+        }
+    </style>
+    <!--// connection to css files-->
+
+    <link rel="stylesheet" href="../css/index.css" />
+    <link rel="stylesheet" href="../css/bootstrap.css" />
+    <link rel="stylesheet" href="../css/bootstrap-grid.css" />
+    <link rel="stylesheet" href="../css/bootstrap-reboot.css" />
+
+    <!--// connection to font files-->
+
+    <link rel="stylesheet" href="../Font/glyphicons-halflings-regular.eot" />
+    <link rel="stylesheet" href="../Font/glyphicons-halflings-regular.svg" />
+    <link rel="stylesheet" href="../Font/glyphicons-halflings-regular.ttf" />
+    <link rel="stylesheet" href="../Font/glyphicons-halflings-regular.woff" />
+    <link rel="stylesheet" href="../Font/glyphicons-halflings-regular.woff2" />
+
+    <!--// js-->
+    <link rel="stylesheet" href="../js/bootstrap.min.js" />
+    <link rel="stylesheet" href="../js/index.js" />
+    <link rel="stylesheet" href="../js/jquery.min.js" />
+    <link rel="stylesheet" href="../js/popper.min.js" />
+
+
+    <script>
+        function GetFlightByIdFunc(flightId) {
+            Window.firstpolyline;
+            $.ajax({
+                url: window.location.href + "api/FlightPlan/'" + flightId + "'",
+                dataType: "Json",
+                method: "GET",
+                success: function (data) {
+
+                    document.getElementById('comp_name').innerHTML = data.company_name;
+
+                    document.getElementById('start_time').innerHTML = data.initial_location.date_time;
+                    var end_time_res = data.initial_location.date_time;
+                    var d = new Date(end_time_res);
+
+                    document.getElementById('num_of_passengers').innerHTML = data.passengers;
+                    // alert('success');
+                    for (var i = 0; i < data.segments.length - 1; i++) {
+                        //  end_time_res.setSeconds(end_time_res.getSeconds() + data.segments[i].timespan_seconds);
+                        d.setSeconds(d.getSeconds() + data.segments[i].timespan_seconds);
+                        var pointA = new L.LatLng(data.segments[i].longitude, data.segments[i].latitude);
+                        var pointB = new L.LatLng(data.segments[i + 1].longitude, data.segments[i + 1].latitude);
+                        var pointList = [pointA, pointB];
+                        var greenIcon2 = L.icon({
+                            iconUrl: '../Images/blackAndWhite.png',
+
+                            iconSize: [40, 40], // size of the icon
+                            iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+                            popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
+                        });
+                        //L.marker([data.segments[i].longitude, data.segments[i].latitude], { icon: greenIcon2 }).addTo(map)
+                        //  pointA.addTo(map);
+                        Window.firstpolyline = new L.Polyline(pointList, {
+                            color: 'green',
+                            weight: 5,
+                            opacity: 1,
+                            smoothFactor: 1
+                        });
+                        Window.firstpolyline.addTo(map);
+                    }
+                    document.getElementById('end_time').innerHTML = d.toISOString().split(".").shift() + "Z";;
+
+                }, error(err) {
+                    debugger;
+                }
+            })
+        }
+
+    </script>
+    <script>
+        function DeleteFlight(flightId) {
+            $.ajax({
+                url: window.location.href + "api/deleteFlight/'" + flightId + "'",
+                dataType: "json",
+                method: "DELETE",
+                success: function (data) {
+
+                    $.ajax({
+                        url: window.location.href + "api/getflight",
+                        dataType: "json",
+                        method: "GET",
+                        success: function (data) {
+                            /*  var tr;
+                              var records = "<thead><tr>" +
+                                  "<th>flightId</th>" +
+                                  "<th>company_name</th>" +
+                                  "<th>is_external</th>/tr></thead><tbody>";
+                              for (var i = 0; i < data.length; i++) {
+                                  var value = data[i];
+                                  value.is_external ?
+                                      records += "<tr><td>" + value.flight_id + "</td><td>" +
+                                      value.company_name + "</td><td>" + "</td></tr>" :
+                                      records += "<tr><td>" + value.flight_id + "</td><td>" +
+                                      value.company_name + "</td><td>" +
+                                      "<button onClick=DeleteFlight('" + value.flight_id + "');>Delete</button>" + "</td></tr>";
+                              }
+                              records += '</tbody>';
+                              $('#internal').html(records);*/
+
+                        }, error() {
+
+                        }
+                    })
+                }, error(err) {
+
+                }
+            })
+        }
+    </script>
+    <script>
+        var all_flights = [];
+        var longtitudeArray = [];
+        var latitudeArray = [];
+        var all_ids = [];
+        var isIconSwitch = [];
+        var theMarker;
+        $(document).ready(function () {
+            console.log(location.hostname);
+            setInterval(function () {
+                var date = new Date().toISOString().split(".").shift() + "Z";
+                console.log(date);
+                /* var day = days[d.getDay()];
+                 var hr = d.getHours();
+                 var min = d.getMinutes();
+                 var date = d.getDate();
+                 var month = months[d.getMonth()];
+                 var year = d.getFullYear();
+                 var y = formatDate(d, "yyyy-MM-ddTHH:mm:ssZ");*/
+                $.ajax({
+                    // 2020-06-03T17:45:00Z
+                    url: window.location.href + "api/Flights?relative_to=" + date + "&sync_all",
+                    dataType: "json",
+                    method: "GET",
+                    success: function (data) {
+                        all_flights = [];
+                        if (theMarker != undefined) {
+                            theMarker.remove();
+                        }
+                        for (var i = 0; i < data.length; i++) {
+                            all_flights = [];
+                            all_ids = [];
+
+                            all_flights.push(data[i]);
+                            longtitudeArray[i] = data[i].longtitude;
+                            latitudeArray[i] = data[i].latitude;
+                            console.log('lon: ' + data[i].longtitude + ', lat: ' + data[i].latitude);
+                            // reDraw(longtitudeArray[i], latitudeArray[i]);
+
+                            var greenIcon = L.icon({
+                                iconUrl: '../Images/blackAndWhite.png',
+
+                                iconSize: [40, 40], // size of the icon
+                                iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+                                popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
+                            });
+
+                            theMarker = L.marker([longtitudeArray[i], latitudeArray[i]], { icon: greenIcon }).addTo(map).on('click', function (e) {
+                                for (var i = 0; i < all_ids.length; i++) {
+
+                                    e.target.setIcon(new IconOnClick);
+                                    Window.current = e.target;
+                                    isIconSwitch[i] = false;
+
+                                    if (all_ids[i] == this._leaflet_id) {
+                                        isIconSwitch[i] = true;
+                                        console.log('clicked flight data: ' + all_flights[i]);
+                                        //document.getElementById('comp_name').innerHTML = all_flights[i].company_name;
+                                        document.getElementById('longtitude_pos').innerHTML = all_flights[i].longtitude;
+                                        document.getElementById('latitude_pos').innerHTML = all_flights[i].latitude;
+                                        //document.getElementById('start_time').innerHTML = all_flights[i].dTime;
+                                        //document.getElementById('end_time').innerHTML = all_flights[i].dTime;
+                                        //document.getElementById('num_of_passengers').innerHTML = all_flights[i].passengers;
+                                        GetFlightByIdFunc(all_flights[i].flight_id);
+                                    }
+                                }
+                                console.log('clicked iD: ' + this._leaflet_id);
+                            });
+                            map.setView([longtitudeArray[i], latitudeArray[i]], 7);
+                            all_ids.push(theMarker._leaflet_id);
+
+                        }
+                        var tr;
+                        var records = "<thead><tr>" +
+                            "<th>flightId</th>" +
+                            "<th>company_name</th>" +
+                            "<th>is_external</th>/tr></thead><tbody>";
+                        for (var i = 0; i < data.length; i++) {
+                            var value = data[i];
+
+                            value.isExternal == 1 ?
+                                records += "<tr><td>" + value.flight_id + "</td><td>" +
+                                value.company_name + "</td><td>" + "</td></tr>" :
+                                records += "<tr><td>" + value.flight_id + "</td><td>" +
+                                //value.company_name + "</td><td>" + "<button onClick=GetFlightByIdFunc('" + value.flight_id + "');>MyBtn</button>" + "</td></tr>";
+                                value.company_name + "</td><td>" + "<button onClick=DeleteFlight('" + value.flight_id + "');>Delete</button>" + "</td></tr>";
+                        }
+                        records += '</tbody>';
+                        $('#internal').html(records);
+
+                    }, error(err) {
+
+                    }
+                })
+            }, 5000);
+        })
+    </script>
+    <script>
+        function ImportFile() {
+            var files = document.getElementById('selectFiles').files;
+            console.log(files);
+            if (files.length <= 0) {
+                return false;
+            }
+            var fr = new FileReader();
+            fr.onload = function (e) {
+                console.log(e);
+                var result = JSON.parse(e.target.result);
+
+                console.log(result);
+                $.ajax({
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    url: window.location.href + "api/FlightPlan",
+                    dataType: "json",
+                    contentType: 'application/json',
+                    method: "POST",
+                    data: JSON.stringify(result),
+                    success: function (result) {
+                        debugger;
+
+                    }, error(err) {
+                        debugger;
+                    }
+                })
+                //http://ronyut.atwebpages.com/ap2/api/FlightPlan
+                // document.getElementById('result').value = formatted;
+            }
+            fr.readAsText(files.item(0));
+        }
+    </script>
+
+    <script>
+        function handleFileSelect(evt) {
+            debugger;
+            var files = evt.target.files; // FileList object
+
+            // use the 1st file from the list
+            f = files[0];
+
+            var reader = new FileReader();
+
+            // Closure to capture the file information.
+            reader.onload = (function (theFile) {
+                return function (e) {
+
+                    jQuery('#ms_word_filtered_html').val(e.target.result);
+                };
+            })(f);
+
+            // Read in the image file as a data URL.
+            reader.readAsText(f);
+        }
+
+        //   document.getElementById('upload').addEventListener('change', handleFileSelect, false);
+    </script>
+    <title>Flight Control Web </title>
+</head>
+
+
+<body>
+    <input type="file" id="selectFiles" />
+    <br />
+    <button type="button" onClick="ImportFile();">import</button>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <h1 class="text-center">
+                    <em><strong>Flight Control Web</strong></em>
+                </h1>
+                <div class="row">
+                    <div class="col-md-8">
+                        <h3 class="text-center">
+                            Map of the world
+                        </h3>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div id="map"></div>IconOnClick
+                                <button class="btn-red"></button>
+                                <script src="../js/index.js"></script>
+                                <script>
+                                    var map = L.map('map').setView([0, 0], 1);
+                                    L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=4uCY16gDs8plk8coeXbG', {
+                                        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler< /a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+                                    }).addTo(map);
+                                </script>
+                                <!--script src="../Images/airplaneShadow.png"></script-->
+                                <script>
+                                    var greenIcon = L.icon({
+                                        iconUrl: '../Images/blackAndWhite.png',
+
+                                        iconSize: [40, 40], // size of the icon
+                                        iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+                                        popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
+                                    });
+                                    var IconOnClickReverse = L.Icon.extend({
+                                        options: {
+                                            iconUrl: '../Images/blackAndWhite.png',
+                                            iconSize: [40, 40],
+                                            iconAnchor: [22, 94],
+                                            popupAnchor: [3, -76]
+
+                                        }
+                                    })
+                                    var IconOnClick = L.Icon.extend({
+                                        options: {
+                                            iconUrl: '../Images/ticket.png',
+                                            iconSize: [70, 70],
+                                            iconAnchor: [22, 94],
+                                            popupAnchor: [3, -76]
+
+                                        }
+                                    })
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h4 class="text-center">
+                            Internal Flight
+                        </h4>
+
+                        <table class="table" id="internal">
+                        </table>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8">
+
+                        <h4 class="text-center">
+                            Flight Details
+                        </h4>
+                        <dl>
+                            <dt>
+                                Longtitude Position
+                            </dt>
+                            <dd id="longtitude_pos">
+                                ===
+                            </dd>
+                            <dt>
+                                Latitude Position
+                            </dt>
+                            <dd id="latitude_pos">
+                                ====
+                            </dd>
+                            <dt>
+                                Start Time
+                            </dt>
+                            <dd id="start_time">
+                                ====
+                            </dd>
+                            <dt>
+                                End Time
+                            </dt>
+                            <dd id="end_time">
+                                ====
+                            </dd>
+                            <dt>
+                                Company Name
+                            </dt>
+                            <dd id="comp_name">
+                                ======
+                            </dd>
+                            <dt>
+                                Number of Passengers
+                            </dt>
+                            <dd id="num_of_passengers">
+                                ====
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <h5 class="text-center">
+                    Linor Salhov
+                </h5>
+            </div>
+            <div class="col-md-4">
+                <h5 class="text-center">
+                    Hadar Reuven
+                </h5>
+            </div>
+            <div class="col-md-4">
+                <h5 class="text-center">
+                    Osher Zizemski
+                </h5>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script type="text/javascript">
+        var ids = [];
+        var greenIcon = {}
+
+        //function reDraw(lon, lat) {
+        //    var greenIcon = L.icon({
+        //        iconUrl: '../Images/blackAndWhite.png',
+
+        //        iconSize: [40, 40], // size of the icon
+        //        iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+        //        popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
+        //    });
+        //    // add id to each flight
+        //    L.marker([lon, lat], { icon: greenIcon).addTo(map).on('click', onClick);
+
+        //}
+
+        //function onClick(e) {
+        //    e.target.setIcon(new IconOnClick);
+
+
+        //    var latlng = map.mouseEventToLatLng(e.originalEvent);
+        //    console.log('test lonlat: ' + latlng.lat + ', ' + latlng.lng + ', id: '+ this._leaflet_id);
+
+        //    for (var i = 0; i < all_flights.length; i++) {
+
+        //    }
+        //    setTimeout(function () {
+        //      //  var numId = e.GetFlightByIdFunc();
+
+        //       // e.target.remove();
+        //    }, 700);
+        //}
+
+
+        //marker.on('click', function (ev) {
+        //    var latlng = map.mouseEventToLatLng(ev.originalEvent);
+        //    console.log(latlng.lat + ', ' + latlng.lng);
+        //});
+
+        //request airaplane location from server
+        //var settings = {
+        //    "url": "http://localhost:49866/api/getcoordinates",
+        //    "method": "GET"
+        //};
+        //reDraw((100, 200), 5000);
+    </script>
+
+
+    <script>
+        ////map.on('click', function () { alert("You clicked the map"); });
+        //map.on('click', function (e) {
+        //    for (var i = 0; i < all_flights.length; i++) {
+        //        e.target.setIcon(new greenIcon);
+        //    });
+        //}
+
+
+        map.on('click', function (e) {
+            for (var i = 0; i < all_flights.length; i++) {
+                // if index in in icon is switched to new icon
+                if (isIconSwitch[i] == true) {
+
+                    // set it to false first of all
+                    isIconSwitch[i] = false;
+
+                    //var greenIcon = L.icon({
+                    //    iconUrl: '../Images/blackAndWhite.png',
+
+                    //    iconSize: [40, 40], // size of the icon
+                    //    iconAnchor: [22, 94], // point of the icon which will correspond to marker's location
+                    //    popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
+                    //});
+
+                    //L.marker(e.latlng).addTo(map);
+                    //theMarker.remove();
+                    // e.target.setIcon(new IconOnClick);
+
+                    Window.current.setIcon(new IconOnClickReverse);
+                    Window.firstpolyline.remove(map);
+                    document.getElementById('comp_name').innerHTML = '===';
+                    document.getElementById('longtitude_pos').innerHTML = '===';
+                    document.getElementById('latitude_pos').innerHTML = '===';
+                    document.getElementById('start_time').innerHTML = '===';
+                    document.getElementById('end_time').innerHTML = '===';
+                    document.getElementById('num_of_passengers').innerHTML = '===';
+                    // marker.reomve(e);
+                    // L.marker([longtitudeArray[i], latitudeArray[i]], { icon: greenIcon }).addTo(map);
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
